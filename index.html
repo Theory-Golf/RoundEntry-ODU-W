@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Golf Shot Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom right, #fafaf8, #f5f4f0);
+            color: #2c3333;
+            line-height: 1.6;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+        }
+        
+        html {
+            height: -webkit-fill-available;
+        }
+        
+        h1, h2, h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        /* ===== CONTAINER & CARD ===== */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(44, 51, 51, 0.08), 0 2px 8px rgba(44, 51, 51, 0.04);
+            padding: 1.25rem;
+        }
+        
+        /* ===== HEADER STYLES ===== */
+        .header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .header h1 {
+            font-size: 1.75rem;
+            color: #2d5016;
+            margin-bottom: 0.25rem;
+        }
+        
+        .header-compact {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #e8e6e0;
+            margin-bottom: 1rem;
+        }
+        
+        .header-compact h1 {
+            font-size: 1.5rem;
+            color: #2d5016;
+        }
+        
+        .header-meta {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        
+        .header-meta .score {
+            font-weight: 600;
+            color: #2c3333;
+            font-size: 0.9rem;
+        }
+        
+        /* ===== PREVIOUS SHOT BANNER (Mobile Key Feature) ===== */
+        .prev-shot-banner {
+            background: linear-gradient(135deg, #f0f7ed 0%, #e8f0e5 100%);
+            border: 1px solid #c4ddb8;
+            border-radius: 4px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .prev-shot-banner.first-shot {
+            background: linear-gradient(135deg, #fafaf8 0%, #f5f4f0 100%);
+            border-color: #e8e6e0;
+        }
+        
+        .prev-shot-info {
+            font-size: 0.85rem;
+        }
+        
+        .prev-shot-label {
+            font-weight: 600;
+            color: #2d5016;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.125rem;
+        }
+        
+        .prev-shot-detail {
+            color: #2c3333;
+        }
+        
+
+        
+        /* ===== FORM ELEMENTS ===== */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #6b7280;
+            margin-bottom: 0.35rem;
+            letter-spacing: 0.3px;
+        }
+        
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.75rem 0.875rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px; /* Prevents iOS zoom */
+            background: white;
+            border: 1.5px solid #e8e6e0;
+            border-radius: 4px;
+            color: #2c3333;
+            transition: border-color 200ms ease;
+            -webkit-appearance: none;
+        }
+        
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #3d6b22;
+        }
+        
+        .form-input:disabled {
+            background: #f5f4f0;
+            color: #6b7280;
+        }
+        
+        .form-input::placeholder {
+            color: #9ca3af;
+        }
+        
+        .form-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            padding-right: 2.5rem;
+        }
+        
+        /* ===== SHOT INPUT GRID (Mobile Optimized) ===== */
+        .shot-input-section {
+            background: #fafaf8;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .shot-input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .shot-input-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .section-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #2d5016;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .input-with-unit {
+            position: relative;
+        }
+        
+        .input-unit {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8rem;
+            color: #9ca3af;
+            pointer-events: none;
+        }
+        
+        .input-with-unit .form-input {
+            padding-right: 2.5rem;
+        }
+        
+        /* ===== PENALTY TOGGLE ===== */
+        .penalty-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: #fff8f0;
+            border: 1.5px solid #e8d4b8;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 1rem;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .penalty-toggle.active {
+            background: #fef3e6;
+            border-color: #c77d3a;
+        }
+        
+        .penalty-checkbox {
+            width: 1.25rem;
+            height: 1.25rem;
+            accent-color: #b8956a;
+            cursor: pointer;
+        }
+        
+        .penalty-text {
+            font-weight: 500;
+            color: #2c3333;
+            font-size: 0.9rem;
+        }
+        
+        /* ===== BUTTONS ===== */
+        .btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 200ms ease;
+            letter-spacing: 0.3px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .btn-primary {
+            background: #2d5016;
+            color: white;
+            width: 100%;
+        }
+        
+        .btn-primary:hover, .btn-primary:active {
+            background: #3d6b22;
+        }
+        
+        .btn-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .btn-primary:disabled:hover {
+            background: #9ca3af;
+        }
+        
+        .btn-secondary {
+            background: #b8956a;
+            color: white;
+            width: 100%;
+        }
+        
+        .btn-secondary:hover, .btn-secondary:active {
+            background: #a07d52;
+        }
+        
+        .btn-small {
+            padding: 0.625rem 1rem;
+            font-size: 0.85rem;
+        }
+        
+        .btn-outline {
+            background: white;
+            border: 1.5px solid #e8e6e0;
+            color: #6b7280;
+        }
+        
+        .btn-outline:hover, .btn-outline:active {
+            border-color: #2d5016;
+            color: #2d5016;
+        }
+        
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+        
+        /* ===== SHOT HISTORY (Collapsible on Mobile) ===== */
+        .shot-history {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e8e6e0;
+        }
+        
+        .shot-history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 0.5rem 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .shot-history-header h3 {
+            font-size: 1rem;
+            color: #2d5016;
+        }
+        
+        .shot-history-toggle {
+            font-size: 0.8rem;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .shot-history-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 300ms ease;
+        }
+        
+        .shot-history-content.expanded {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .shot-item {
+            background: #fafaf8;
+            border: 1px solid #e8e6e0;
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+        }
+        
+        .shot-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .shot-label {
+            font-weight: 600;
+            color: #2d5016;
+        }
+        
+        .penalty-badge {
+            color: #c77d3a;
+            font-weight: 600;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+        
+        .hole-total {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: #fafaf8;
+            border: 1px solid #e8e6e0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        /* ===== ROUND INFO PAGE ===== */
+        .round-info-grid {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        /* ===== COMPLETION PAGE ===== */
+        .success-icon {
+            font-size: 3rem;
+            color: #2d5016;
+            margin-bottom: 1rem;
+        }
+        
+        .success-title {
+            font-size: 1.75rem;
+            color: #2d5016;
+            margin-bottom: 0.5rem;
+        }
+        
+        .success-message {
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .summary-card {
+            background: #fafaf8;
+            border: 1px solid #e8e6e0;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        
+        .summary-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.1rem;
+            color: #2d5016;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+        
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.4rem 0;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #e8e6e0;
+        }
+        
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+        
+        .summary-label {
+            color: #6b7280;
+        }
+        
+        .summary-value {
+            color: #2c3333;
+            font-weight: 600;
+        }
+        
+        .success-box {
+            background: #f0f7ed;
+            border: 1.5px solid #c4ddb8;
+            border-radius: 4px;
+            padding: 1rem;
+            color: #2d5016;
+            font-weight: 500;
+        }
+        
+        /* ===== DESKTOP ENHANCEMENTS ===== */
+        @media (min-width: 768px) {
+            .container {
+                padding: 2rem 1.5rem;
+                max-width: 700px;
+            }
+            
+            .card {
+                padding: 2rem;
+            }
+            
+            .header h1 {
+                font-size: 2.25rem;
+            }
+            
+            .shot-input-section {
+                padding: 1.5rem;
+            }
+            
+            .round-info-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .round-info-grid .form-group.full-width {
+                grid-column: 1 / -1;
+            }
+        }
+        
+        /* ===== INLINE LIE SELECTOR BUTTONS ===== */
+        .lie-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .lie-btn {
+            padding: 0.625rem 0.5rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            background: white;
+            border: 1.5px solid #e8e6e0;
+            border-radius: 4px;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 150ms ease;
+            -webkit-tap-highlight-color: transparent;
+            text-align: center;
+        }
+        
+        .lie-btn:hover {
+            border-color: #3d6b22;
+            color: #2d5016;
+        }
+        
+        .lie-btn:active {
+            transform: scale(0.97);
+        }
+        
+        .lie-btn.selected {
+            background: #2d5016;
+            border-color: #2d5016;
+            color: white;
+        }
+        
+        .lie-btn.selected:hover {
+            background: #3d6b22;
+            border-color: #3d6b22;
+            color: white;
+        }
+        
+        /* Start lie row (disabled state for non-first shots) */
+        .lie-btn.disabled {
+            background: #f5f4f0;
+            color: #9ca3af;
+            cursor: not-allowed;
+            border-color: #e8e6e0;
+        }
+        
+        .lie-btn.disabled:hover {
+            border-color: #e8e6e0;
+            color: #9ca3af;
+        }
+        
+        .lie-btn.disabled:active {
+            transform: none;
+        }
+        
+        /* Responsive: 2 columns on smaller screens */
+        @media (max-width: 380px) {
+            .lie-selector {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        /* Compact row layout for lie buttons next to distance */
+        .lie-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        .lie-row .lie-selector {
+            flex: 1;
+        }
+        
+        /* ===== TEE SHOT & PUTT OPTIONS ===== */
+        /* Did Not Hit Driver - Red Penalty Box Style */
+        .shot-options-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem 0.875rem;
+            background: #fef2f2;
+            border: 2px solid #dc2626;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 0.75rem;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .shot-options-toggle:hover {
+            background: #fee2e2;
+            border-color: #b91c1c;
+        }
+
+        .shot-options-toggle.active {
+            background: #fef2f2;
+            border-color: #dc2626;
+        }
+
+        .shot-options-checkbox {
+            width: 1.1rem;
+            height: 1.1rem;
+            accent-color: #dc2626;
+            cursor: pointer;
+        }
+
+        .shot-options-text {
+            font-weight: 500;
+            color: #991b1b;
+            font-size: 0.85rem;
+        }
+
+        /* Putt result buttons - Matching Did Not Hit Driver style */
+        .putt-result-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: #fef2f2;
+            border: 1.5px solid #dc2626;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .putt-result-container:hover {
+            background: #fee2e2;
+            border-color: #b91c1c;
+        }
+
+        .putt-result-container.active {
+            background: #fef2f2;
+            border-color: #dc2626;
+        }
+
+        @keyframes puttPromptFadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .putt-result-label {
+            font-weight: 500;
+            color: #991b1b;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .putt-result-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.375rem;
+            flex: 1;
+        }
+
+        .putt-result-btn {
+            padding: 0.375rem 0.5rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: white;
+            border: 1.5px solid #dc2626;
+            border-radius: 4px;
+            color: #991b1b;
+            cursor: pointer;
+            transition: all 200ms ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .putt-result-btn:hover {
+            background: #fef2f2;
+            border-color: #b91c1c;
+            color: #b91c1c;
+        }
+
+        .putt-result-btn:active {
+            transform: scale(0.97);
+        }
+
+        .putt-result-btn.selected {
+            background: #dc2626;
+            border-color: #dc2626;
+            color: white;
+        }
+
+        .putt-result-btn.selected:hover {
+            background: #b91c1c;
+            border-color: #b91c1c;
+            color: white;
+        }
+
+        /* ===== SHOT HISTORY TABLE ===== */
+        .shot-history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+            background: white;
+            border: 1px solid #e8e6e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .shot-history-table th {
+            background: #f5f4f0;
+            color: #2d5016;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            padding: 0.5rem 0.375rem;
+            text-align: left;
+            border-bottom: 1px solid #e8e6e0;
+            white-space: nowrap;
+        }
+
+        .shot-history-table td {
+            padding: 0.5rem 0.375rem;
+            border-bottom: 1px solid #e8e6e0;
+            color: #2c3333;
+        }
+
+        .shot-history-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .shot-history-table tr:nth-child(even) {
+            background: #fafaf8;
+        }
+
+        .shot-history-table .shot-num {
+            font-weight: 600;
+            color: #2d5016;
+            width: 40px;
+        }
+
+        .shot-history-table .distance {
+            font-weight: 500;
+            width: 60px;
+        }
+
+        .shot-history-table .lie {
+            width: 65px;
+        }
+
+        .shot-history-table .penalty-cell {
+            width: 45px;
+            text-align: center;
+        }
+
+        .penalty-indicator {
+            display: inline-block;
+            background: #fff8f0;
+            color: #c77d3a;
+            font-weight: 600;
+            font-size: 0.65rem;
+            padding: 0.125rem 0.375rem;
+            border-radius: 2px;
+            border: 1px solid #e8d4b8;
+        }
+
+        .hole-total-row td {
+            background: #f5f4f0 !important;
+            font-weight: 600;
+            border-top: 2px solid #e8e6e0;
+        }
+
+        /* Mobile-responsive table wrapper */
+        .shot-history-table-wrapper {
+            overflow-x: auto;
+            margin-top: 0.5rem;
+            -webkit-overflow-scrolling: touch;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbydum82VpgH-ZvxXMiZwtFq1nJiZx5vK2mnQSfI2FIzM1hbComsTE-tWQSt8q800Ifz/exec';
+
+        
+        // ============================================================
+        // UTILITY FUNCTIONS
+        // ============================================================
+        
+        function getSmartDefaultEndLie(startDistance, startLie, isFirstShotOfHole) {
+            const distance = parseFloat(startDistance);
+            
+            // Fallback: keep intuitive defaults if distance isn't usable yet
+            if (isNaN(distance)) {
+                return startLie === 'Green' ? 'Green' : 'Fairway';
+            }
+            
+            // First shot of a hole (tee shot) rule
+            if (isFirstShotOfHole && startLie === 'Tee') {
+                return distance < 200 ? 'Green' : 'Fairway';
+            }
+            
+            // Subsequent shots: under 200 and not recovery → likely green
+            if (distance < 200 && startLie !== 'Recovery') {
+                return 'Green';
+            }
+            
+            // Otherwise, default to fairway unless already on the green
+            return startLie === 'Green' ? 'Green' : 'Fairway';
+        }
+
+        // ============================================================
+        // LIE SELECTOR COMPONENT (Inline Buttons)
+        // ============================================================
+        function LieSelector({ value, onChange, disabled = false, label }) {
+            const lieTypes = ['Tee', 'Fairway', 'Rough', 'Sand', 'Recovery', 'Green'];
+
+            return (
+                <div>
+                    {label && <span className="section-label">{label}</span>}
+                    <div className="lie-selector">
+                        {lieTypes.map(lie => (
+                            <button
+                                key={lie}
+                                type="button"
+                                className={`lie-btn ${value === lie ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
+                                onClick={() => !disabled && onChange(lie)}
+                                disabled={disabled}
+                            >
+                                {lie}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // ============================================================
+        // MAIN COMPONENT
+        // ============================================================
+        function GolfTracker() {
+            const [step, setStep] = useState('round-info');
+            const [roundInfo, setRoundInfo] = useState({
+                playerName: '',
+                date: new Date().toISOString().split('T')[0],
+                course: '',
+                tournament: '',
+                weatherDifficulty: 'Normal',
+                courseDifficulty: 'Standard'
+            });
+            
+            const [currentHole, setCurrentHole] = useState(1);
+            const [holes, setHoles] = useState(Array.from({ length: 18 }, () => ({ shots: [] })));
+            const [currentShot, setCurrentShot] = useState({
+                startDistance: '',
+                startLie: 'Tee',
+                endDistance: '',
+                endLie: 'Fairway',
+                penalty: false,
+                didNotHitDriver: false,
+                puttResult: ''
+            });
+            const [submitting, setSubmitting] = useState(false);
+            const [historyExpanded, setHistoryExpanded] = useState(false);
+            const [endLieTouched, setEndLieTouched] = useState(false);
+            const [focusTarget, setFocusTarget] = useState(null);
+            const [isProcessingShot, setIsProcessingShot] = useState(false);
+
+            // DEBUG: Log potential data loss risk on mount
+            useEffect(() => {
+                console.log('[PROD-CHECK] App mounted - current state exists:', holes.some(h => h.shots.length > 0));
+            }, []);
+
+            // ===== LOCALSTORAGE PERSISTENCE =====
+            const STORAGE_KEY = 'golfTrackerData';
+            
+            // Save current state to localStorage
+            const saveToLocalStorage = () => {
+                try {
+                    const dataToSave = {
+                        roundInfo,
+                        currentHole,
+                        holes,
+                        step,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+                    console.log('[localStorage] Data saved');
+                } catch (error) {
+                    console.error('[localStorage] Save failed:', error);
+                }
+            };
+
+            // Load state from localStorage
+            const loadFromLocalStorage = () => {
+                try {
+                    const savedData = localStorage.getItem(STORAGE_KEY);
+                    if (savedData) {
+                        const parsed = JSON.parse(savedData);
+                        console.log('[localStorage] Found saved data from', new Date(parsed.timestamp).toLocaleString());
+                        return parsed;
+                    }
+                } catch (error) {
+                    console.error('[localStorage] Load failed:', error);
+                }
+                return null;
+            };
+
+            // Clear localStorage after successful submission
+            const clearLocalStorage = () => {
+                try {
+                    localStorage.removeItem(STORAGE_KEY);
+                    console.log('[localStorage] Data cleared after submission');
+                } catch (error) {
+                    console.error('[localStorage] Clear failed:', error);
+                }
+            };
+
+            // Load saved data on mount
+            useEffect(() => {
+                const savedData = loadFromLocalStorage();
+                if (savedData) {
+                    // Restore all state
+                    if (savedData.roundInfo) setRoundInfo(savedData.roundInfo);
+                    if (savedData.currentHole) setCurrentHole(savedData.currentHole);
+                    if (savedData.holes) setHoles(savedData.holes);
+                    if (savedData.step) setStep(savedData.step);
+                    console.log('[localStorage] State restored successfully');
+                }
+            }, []);
+
+            // Auto-save on any state change (debounced)
+            useEffect(() => {
+                const saveTimeout = setTimeout(() => {
+                    if (step !== 'round-info') {
+                        saveToLocalStorage();
+                    }
+                }, 500); // Debounce 500ms to avoid excessive writes
+                return () => clearTimeout(saveTimeout);
+            }, [roundInfo, currentHole, holes, step]);
+
+            // DEBUG: Log Google Sheets submission attempt
+            const debugLogSubmission = (data) => {
+                console.log('[PROD-CHECK] Attempting Google Sheets submission...');
+                console.log('[PROD-CHECK] Using no-cors mode - cannot verify actual success');
+                console.log('[PROD-CHECK] Data being sent:', data.length, 'records');
+            };
+
+            const endDistanceRef = useRef(null);
+            const startDistanceRef = useRef(null);
+            const didNotHitDriverRef = useRef(null);
+            const penaltyRef = useRef(null);
+            const addShotBtnRef = useRef(null);
+            const undoShotBtnRef = useRef(null);
+            const prevHoleBtnRef = useRef(null);
+            const newRoundBtnRef = useRef(null);
+
+            const weatherOptions = ['Cold', 'Windy', 'Cold and Windy', 'Normal'];
+            const courseOptions = ['Hard', 'Standard', 'Easy'];
+            const lieTypes = ['Tee', 'Fairway', 'Rough', 'Sand', 'Recovery', 'Green'];
+
+
+            useEffect(() => {
+                if (focusTarget === 'startDistance' && startDistanceRef.current) {
+                    startDistanceRef.current.focus();
+                    if (typeof startDistanceRef.current.select === 'function') {
+                        startDistanceRef.current.select();
+                    }
+                    setFocusTarget(null);
+                } else if (focusTarget === 'endDistance' && endDistanceRef.current) {
+                    endDistanceRef.current.focus();
+                    if (typeof endDistanceRef.current.select === 'function') {
+                        endDistanceRef.current.select();
+                    }
+                    setFocusTarget(null);
+                }
+            }, [focusTarget]);
+
+            // ===== HANDLERS =====
+            const handleRoundInfoSubmit = () => {
+                if (!roundInfo.playerName || !roundInfo.date || !roundInfo.course || 
+                    !roundInfo.tournament || !roundInfo.weatherDifficulty || !roundInfo.courseDifficulty) {
+                    alert('Please fill in all round information fields');
+                    return;
+                }
+                setStep('shot-entry');
+                setFocusTarget('startDistance');
+            };
+
+            const addShot = () => {
+                // Debounce to prevent double-submission
+                if (isProcessingShot) return;
+                setIsProcessingShot(true);
+                
+                if (!currentShot.startDistance || !currentShot.endDistance) {
+                    alert('Please enter both start and end distances');
+                    setIsProcessingShot(false);
+                    return;
+                }
+
+                // Validate non-negative numbers
+                const startDist = parseFloat(currentShot.startDistance);
+                const endDist = parseFloat(currentShot.endDistance);
+                if (isNaN(startDist) || startDist < 0 || isNaN(endDist) || endDist < 0) {
+                    alert('Please enter valid positive numbers for distances');
+                    setIsProcessingShot(false);
+                    return;
+                }
+
+                // Validate first putt result required for putts over 10 feet on green
+                const isFirstPuttOver10ft = 
+                    currentShot.startLie === 'Green' && 
+                    parseFloat(currentShot.startDistance) > 10;
+                
+                if (isFirstPuttOver10ft && !currentShot.puttResult) {
+                    alert('Please select Short or Long for your first putt');
+                    setIsProcessingShot(false);
+                    return;
+                }
+
+                const newHoles = [...holes];
+                
+                newHoles[currentHole - 1].shots.push({
+                    shotNumber: newHoles[currentHole - 1].shots.length + 1,
+                    startDistance: parseFloat(currentShot.startDistance),
+                    startLie: currentShot.startLie,
+                    endDistance: parseFloat(currentShot.endDistance),
+                    endLie: currentShot.endLie,
+                    penalty: currentShot.penalty,
+                    didNotHitDriver: currentShot.didNotHitDriver,
+                    puttResult: currentShot.puttResult
+                });
+                setHoles(newHoles);
+
+                // Hole complete - ball in hole
+                if (parseFloat(currentShot.endDistance) === 0) {
+                    if (currentHole < 18) {
+                        setCurrentHole(currentHole + 1);
+                        setCurrentShot({ startDistance: '', startLie: 'Tee', endDistance: '', endLie: 'Fairway', penalty: false, didNotHitDriver: false, puttResult: '' });
+                        setEndLieTouched(false);
+                        setFocusTarget('startDistance');
+                    } else {
+                        setStep('complete');
+                    }
+                } else {
+                    // Continue on same hole
+                    const nextStartDistance = currentShot.endDistance;
+                    const nextStartLie = currentShot.endLie;
+                    const nextEndLie = getSmartDefaultEndLie(nextStartDistance, nextStartLie, false);
+                    setCurrentShot({
+                        startDistance: nextStartDistance,
+                        startLie: nextStartLie,
+                        endDistance: '',
+                        endLie: nextEndLie,
+                        penalty: false,
+                        didNotHitDriver: false,
+                        puttResult: ''
+                    });
+                    setEndLieTouched(false);
+                    setFocusTarget('endDistance');
+                }
+                
+                // Reset debounce flag after a short delay
+                setTimeout(() => setIsProcessingShot(false), 100);
+            };
+
+            const handleEndDistanceKeyDown = (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addShot();
+                }
+            };
+
+            // Handle Tab key navigation for desktop users
+            const handleTabKeyDown = (event, currentField) => {
+                const isShift = event.shiftKey;
+                
+                // Define the ordered fields for Tab navigation
+                // Note: isTeeShotOver250 is computed in the render section
+                const isTeeShotOver250 = currentShot.startLie === 'Tee' && parseFloat(currentShot.startDistance) > 250;
+                const isStartDistanceDisabled = currentShot.startLie !== 'Tee' && holes[currentHole - 1].shots.length > 0;
+                
+                const orderedFields = [];
+                
+                // 1. Start Distance (skip if disabled)
+                if (!isStartDistanceDisabled) {
+                    orderedFields.push({ name: 'startDistance', ref: startDistanceRef });
+                }
+                
+                // 2. Did Not Hit Driver (only if tee shot > 250 yards)
+                if (isTeeShotOver250) {
+                    orderedFields.push({ name: 'didNotHitDriver', ref: didNotHitDriverRef });
+                }
+                
+                // 3. End Distance
+                orderedFields.push({ name: 'endDistance', ref: endDistanceRef });
+                
+                // 4. Penalty
+                orderedFields.push({ name: 'penalty', ref: penaltyRef });
+                
+                // 5. Add Shot
+                orderedFields.push({ name: 'addShot', ref: addShotBtnRef });
+                
+                // 6. Undo Shot
+                orderedFields.push({ name: 'undoShot', ref: undoShotBtnRef });
+                
+                // 7. Prev Hole
+                orderedFields.push({ name: 'prevHole', ref: prevHoleBtnRef });
+                
+                // 8. New Round
+                orderedFields.push({ name: 'newRound', ref: newRoundBtnRef });
+                
+                // Find current index
+                const currentIndex = orderedFields.findIndex(f => f.name === currentField);
+                
+                if (currentIndex === -1) return; // Field not in ordered list
+                
+                let nextIndex;
+                
+                if (isShift) {
+                    // Shift+Tab: go backwards
+                    if (currentIndex === 0) {
+                        // At first field, allow default browser behavior
+                        return; 
+                    }
+                    nextIndex = currentIndex - 1;
+                } else {
+                    // Tab: go forwards
+                    if (currentIndex === orderedFields.length - 1) {
+                        // At last field, allow default browser behavior
+                        return;
+                    }
+                    nextIndex = currentIndex + 1;
+                }
+                
+                // Prevent default and focus next field
+                event.preventDefault();
+                const nextField = orderedFields[nextIndex];
+                if (nextField.ref.current) {
+                    nextField.ref.current.focus();
+                }
+            };
+
+            const removePreviousShot = () => {
+                const currentHoleData = holes[currentHole - 1];
+                if (currentHoleData.shots.length === 0) {
+                    alert('No shots to remove on this hole');
+                    return;
+                }
+                
+                const newHoles = [...holes];
+                newHoles[currentHole - 1].shots.pop();
+                setHoles(newHoles);
+                
+                if (newHoles[currentHole - 1].shots.length > 0) {
+                    const lastShot = newHoles[currentHole - 1].shots[newHoles[currentHole - 1].shots.length - 1];
+                    setCurrentShot({
+                        startDistance: lastShot.endDistance.toString(),
+                        startLie: lastShot.endLie,
+                        endDistance: '',
+                        endLie: getSmartDefaultEndLie(lastShot.endDistance, lastShot.endLie, false),
+                        penalty: false,
+                        didNotHitDriver: false,
+                        puttResult: ''
+                    });
+                    setEndLieTouched(false);
+                } else {
+                    setCurrentShot({ startDistance: '', startLie: 'Tee', endDistance: '', endLie: 'Fairway', penalty: false, didNotHitDriver: false, puttResult: '' });
+                    setEndLieTouched(false);
+                }
+            };
+
+            const goToPreviousHole = () => {
+                if (currentHole === 1) {
+                    alert('Already on the first hole');
+                    return;
+                }
+                setCurrentHole(currentHole - 1);
+                const prevHoleData = holes[currentHole - 2];
+                if (prevHoleData.shots.length > 0) {
+                    const lastShot = prevHoleData.shots[prevHoleData.shots.length - 1];
+                    setCurrentShot({
+                        startDistance: lastShot.endDistance.toString(),
+                        startLie: lastShot.endLie,
+                        endDistance: '',
+                        endLie: getSmartDefaultEndLie(lastShot.endDistance, lastShot.endLie, false),
+                        penalty: false,
+                        didNotHitDriver: false,
+                        puttResult: ''
+                    });
+                    setEndLieTouched(false);
+                } else {
+                    setCurrentShot({ startDistance: '', startLie: 'Tee', endDistance: '', endLie: 'Fairway', penalty: false, didNotHitDriver: false, puttResult: '' });
+                    setEndLieTouched(false);
+                }
+            };
+
+            const startNewRound = () => {
+                const hasData = holes.some(hole => hole.shots.length > 0);
+                const message = hasData 
+                    ? 'Are you sure you want to start a new round? All current shot data will be lost.'
+                    : 'Are you sure you want to start a new round?';
+                
+                if (confirm(message)) {
+                    // Reset all round data
+                    setHoles(Array.from({ length: 18 }, () => ({ shots: [] })));
+                    setCurrentHole(1);
+                    setCurrentShot({ startDistance: '', startLie: 'Tee', endDistance: '', endLie: 'Fairway', penalty: false, didNotHitDriver: false, puttResult: '' });
+                    setEndLieTouched(false);
+                    clearLocalStorage();
+                    setStep('round-info');
+                }
+            };
+
+            const prepareDataForExport = () => {
+                const roundId = `R${Date.now()}`;
+                const data = [];
+                let runningScore = 0;
+                
+                // Check if there's any data to export
+                const hasData = holes.some(hole => hole.shots.length > 0);
+                if (!hasData) {
+                    return [];
+                }
+                
+                holes.forEach((hole, holeIdx) => {
+                    hole.shots.forEach((shot) => {
+                        runningScore += 1 + (shot.penalty ? 1 : 0);
+                        data.push({
+                            'Player': roundInfo.playerName,
+                            'Round ID': roundId,
+                            'Date': roundInfo.date,
+                            'Course': roundInfo.course,
+                            'Weather Difficulty': roundInfo.weatherDifficulty,
+                            'Course Difficulty': roundInfo.courseDifficulty,
+                            'Tournament': roundInfo.tournament,
+                            'Shot': shot.shotNumber,
+                            'Hole': holeIdx + 1,
+                            'Score': runningScore,
+                            'Starting Distance': shot.startDistance,
+                            'Starting Location': shot.startLie,
+                            'Ending Distance': shot.endDistance,
+                            'Ending Lie': shot.endLie,
+                            'Penalty': shot.penalty ? 'Yes' : 'No',
+                            'Did Not Hit Driver': shot.didNotHitDriver ? 'Yes' : 'No',
+                            'Putt Result': shot.puttResult || ''
+                        });
+                    });
+                });
+                return data;
+            };
+
+            const submitToGoogleSheets = async () => {
+                if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+                    alert('Apps Script not configured yet. Please download Excel file instead.');
+                    return;
+                }
+                
+                const data = prepareDataForExport();
+                if (data.length === 0) {
+                    alert('No shot data to submit. Please add some shots first.');
+                    return;
+                }
+                
+                setSubmitting(true);
+                try {
+                    // DEBUG: Log submission attempt
+                    debugLogSubmission(data);
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000);
+                    
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        signal: controller.signal,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ data })
+                    });
+                    clearTimeout(timeoutId);
+                    alert('Round successfully submitted to Google Sheets!');
+                    clearLocalStorage(); // Clear saved data after successful submission
+                    setStep('submitted');
+                } catch (error) {
+                    console.error(error);
+                    const errorMessage = error.name === 'AbortError' 
+                        ? 'Request timed out. Please try again or download Excel file.'
+                        : 'Error submitting. Please try downloading Excel file instead.';
+                    alert(errorMessage);
+                } finally {
+                    setSubmitting(false);
+                }
+            };
+
+            const downloadExcel = () => {
+                const data = prepareDataForExport();
+                if (data.length === 0) {
+                    alert('No shot data to export. Please add some shots first.');
+                    return;
+                }
+                // Sanitize filename to remove invalid characters
+                const sanitize = (str) => str.replace(/[<>:"/\\|?*]/g, '_').trim() || 'Unknown';
+                const safePlayerName = sanitize(roundInfo.playerName);
+                const safeCourse = sanitize(roundInfo.course);
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Round Data');
+                XLSX.writeFile(wb, `${safePlayerName}_${safeCourse}_${roundInfo.date}.xlsx`);
+            };
+
+            // ===== RENDER: ROUND INFO =====
+            if (step === 'round-info') {
+                return (
+                    <div className="container">
+                        <div className="card">
+                            <div className="header">
+                                <h1>Round Information</h1>
+                            </div>
+                            
+                            <div className="round-info-grid">
+                                <div className="form-group">
+                                    <label className="form-label">Player Name</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-input" 
+                                        value={roundInfo.playerName}
+                                        onChange={(e) => setRoundInfo({...roundInfo, playerName: e.target.value})} 
+                                    />
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label className="form-label">Date</label>
+                                    <input 
+                                        type="date" 
+                                        className="form-input" 
+                                        value={roundInfo.date}
+                                        onChange={(e) => setRoundInfo({...roundInfo, date: e.target.value})} 
+                                    />
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label className="form-label">Course</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-input" 
+                                        value={roundInfo.course}
+                                        onChange={(e) => setRoundInfo({...roundInfo, course: e.target.value})} 
+                                    />
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label className="form-label">Tournament</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-input" 
+                                        value={roundInfo.tournament}
+                                        onChange={(e) => setRoundInfo({...roundInfo, tournament: e.target.value})} 
+                                    />
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label className="form-label">Weather Difficulty</label>
+                                    <select 
+                                        className="form-select" 
+                                        value={roundInfo.weatherDifficulty}
+                                        onChange={(e) => setRoundInfo({...roundInfo, weatherDifficulty: e.target.value})}
+                                    >
+                                        <option value="">Select weather</option>
+                                        {weatherOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                                    </select>
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label className="form-label">Course Difficulty</label>
+                                    <select 
+                                        className="form-select" 
+                                        value={roundInfo.courseDifficulty}
+                                        onChange={(e) => setRoundInfo({...roundInfo, courseDifficulty: e.target.value})}
+                                    >
+                                        <option value="">Select difficulty</option>
+                                        {courseOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                                    </select>
+                                </div>
+                                
+
+                            </div>
+                            
+                            <button className="btn btn-primary" onClick={handleRoundInfoSubmit} style={{marginTop: '1rem'}}>
+                                Start Round
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // ===== RENDER: SHOT ENTRY =====
+            if (step === 'shot-entry') {
+                const currentHoleData = holes[currentHole - 1];
+                const isFirstShot = currentHoleData.shots.length === 0;
+                const lastShot = currentHoleData.shots[currentHoleData.shots.length - 1];
+                
+                const totalScore = holes.reduce((total, hole) => 
+                    total + hole.shots.length + hole.shots.filter(s => s.penalty).length, 0);
+                
+                // Feature 1: Show "Did Not Hit Driver" for tee shots > 250 yards
+                const isTeeShotOver250 = isFirstShot && currentShot.startLie === 'Tee' && parseFloat(currentShot.startDistance) > 250;
+                
+                // Feature 2: Show "Putt Result" for putts on green > 10 feet
+                const isFirstPuttOver10ft = 
+                    currentShot.startLie === 'Green' && 
+                    parseFloat(currentShot.startDistance) > 10;
+                
+
+                
+                return (
+                    <div className="container">
+                        <div className="card">
+                            {/* Compact Header */}
+                            <div className="header-compact">
+                                <h1>Hole {currentHole}</h1>
+                                <div className="header-meta">
+                                    <div>{roundInfo.playerName}</div>
+                                    <div className="score">Score: {totalScore}</div>
+                                </div>
+                            </div>
+                            
+                            {/* Previous Shot Banner - Key Mobile Feature */}
+                            <div className={`prev-shot-banner ${isFirstShot ? 'first-shot' : ''}`}>
+                                <div className="prev-shot-info">
+                                    <div className="prev-shot-label">
+                                        {isFirstShot ? 'First Shot' : 'Previous Shot'}
+                                    </div>
+                                    <div className="prev-shot-detail">
+                                        {isFirstShot ? (
+                                            `Tee shot on Hole ${currentHole}`
+                                        ) : (
+                                            <>
+                                                {lastShot.startDistance}{lastShot.startLie === 'Green' ? 'ft' : 'y'} ({lastShot.startLie}) → {lastShot.endDistance}{lastShot.endLie === 'Green' ? 'ft' : 'y'} ({lastShot.endLie})
+                                                {lastShot.penalty && <span className="penalty-badge">+1 PEN</span>}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                            </div>
+                            
+                            {/* Shot Input Section */}
+                            <div className="shot-input-section">
+                                <label htmlFor="startDistance" className="section-label">Shot #{currentHoleData.shots.length + 1} - Starting Position</label>
+                                <div className="shot-input-row">
+                                    <div className="input-with-unit">
+                                        <input
+                                            id="startDistance"
+                                            type="number"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            min="0"
+                                            max={currentShot.startLie === 'Green' ? '120' : '700'}
+                                            className="form-input"
+                                            value={currentShot.startDistance}
+                                            onChange={(e) => {
+                                                const newValue = e.target.value;
+                                                const updatedShot = { ...currentShot, startDistance: newValue };
+                                                const isFirstShotOfHole = isFirstShot && updatedShot.startLie === 'Tee';
+
+                                                if (!endLieTouched) {
+                                                    updatedShot.endLie = getSmartDefaultEndLie(
+                                                        newValue,
+                                                        updatedShot.startLie,
+                                                        isFirstShotOfHole
+                                                    );
+                                                }
+
+                                                setCurrentShot(updatedShot);
+                                            }}
+                                            placeholder="Distance"
+                                            ref={startDistanceRef}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Tab') {
+                                                    handleTabKeyDown(e, 'startDistance');
+                                                }
+                                            }}
+                                        />
+                                        <span className="input-unit">{currentShot.startLie === 'Green' ? 'ft' : 'yd'}</span>
+                                    </div>
+                                    {/* Read-only starting location display - auto-set from previous shot or Tee for first shot */}
+                                    <span className="form-input disabled" style={{ flex: '0 0 auto', minWidth: '90px', textAlign: 'center', display: 'flex', alignItems: 'center' }} aria-readonly="true">
+                                        {currentShot.startLie}
+                                    </span>
+                                </div>
+
+                            {/* Feature 1: Did Not Hit Driver checkbox for tee shots > 250 yards */}
+                            {isTeeShotOver250 && (
+                                <label className="shot-options-toggle" ref={didNotHitDriverRef}>
+                                    <input 
+                                        type="checkbox" 
+                                        className="shot-options-checkbox"
+                                        checked={currentShot.didNotHitDriver}
+                                        onChange={(e) => setCurrentShot({...currentShot, didNotHitDriver: e.target.checked})}
+                                        onKeyDown={(e) => handleTabKeyDown(e, 'didNotHitDriver')}
+                                    />
+                                    <span className="shot-options-text">Did not hit Driver</span>
+                                </label>
+                            )}
+                            
+                                <label htmlFor="endDistance" className="section-label" style={{marginTop: '0.75rem'}}>Ending Distance</label>
+                                <div className="shot-input-row">
+                                    <div className="input-with-unit">
+                                        <input
+                                            id="endDistance"
+                                            type="number"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            min="0"
+                                            max={currentShot.endLie === 'Green' ? '120' : '700'}
+                                            className="form-input"
+                                            value={currentShot.endDistance}
+                                            onChange={(e) => setCurrentShot({...currentShot, endDistance: e.target.value})}
+                                            placeholder="0 = holed"
+                                            ref={endDistanceRef}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Tab') {
+                                                    handleTabKeyDown(e, 'endDistance');
+                                                } else if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    addShot();
+                                                }
+                                            }}
+                                        />
+                                        <span className="input-unit">{currentShot.endLie === 'Green' ? 'ft' : 'yd'}</span>
+                                    </div>
+                                </div>
+                                
+                                {/* Feature 2: Putt Result options for putts > 10 feet on green */}
+                                {isFirstPuttOver10ft && (
+                                    <div className="putt-result-container">
+                                        <span className="putt-result-label">First Putt</span>
+                                        <div className="putt-result-selector">
+                                            <button 
+                                                type="button"
+                                                className={`putt-result-btn ${currentShot.puttResult === 'Short' ? 'selected' : ''}`}
+                                                onClick={() => {
+                                                    setCurrentShot({...currentShot, puttResult: currentShot.puttResult === 'Short' ? '' : 'Short'});
+                                                    // Auto-submit after selecting
+                                                    setTimeout(() => addShot(), 50);
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        setCurrentShot({...currentShot, puttResult: currentShot.puttResult === 'Short' ? '' : 'Short'});
+                                                        setTimeout(() => addShot(), 50);
+                                                    }
+                                                }}
+                                            >
+                                                Short
+                                            </button>
+                                            <button 
+                                                type="button"
+                                                className={`putt-result-btn ${currentShot.puttResult === 'Long' ? 'selected' : ''}`}
+                                                onClick={() => {
+                                                    setCurrentShot({...currentShot, puttResult: currentShot.puttResult === 'Long' ? '' : 'Long'});
+                                                    // Auto-submit after selecting
+                                                    setTimeout(() => addShot(), 50);
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        setCurrentShot({...currentShot, puttResult: currentShot.puttResult === 'Long' ? '' : 'Long'});
+                                                        setTimeout(() => addShot(), 50);
+                                                    }
+                                                }}
+                                            >
+                                                Long
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Inline Lie Selector - Always Visible Buttons */}
+                                <LieSelector 
+                                    value={currentShot.endLie}
+                                    onChange={(lie) => {
+                                        setEndLieTouched(true);
+                                        setCurrentShot({...currentShot, endLie: lie});
+                                    }}
+                                    label="Ending Lie"
+                                />
+                            </div>
+                            
+                            {/* Penalty Toggle */}
+                            <label className={`penalty-toggle ${currentShot.penalty ? 'active' : ''}`} ref={penaltyRef}>
+                                <input 
+                                    type="checkbox" 
+                                    className="penalty-checkbox"
+                                    checked={currentShot.penalty}
+                                    onChange={(e) => setCurrentShot({...currentShot, penalty: e.target.checked})}
+                                    onKeyDown={(e) => handleTabKeyDown(e, 'penalty')}
+                                />
+                                <span className="penalty-text">Penalty Stroke (+1)</span>
+                            </label>
+                            
+                            {/* Main Action Button */}
+                            <button 
+                                className="btn btn-primary" 
+                                onClick={addShot}
+                                disabled={!currentShot.startDistance || !currentShot.endDistance}
+                                ref={addShotBtnRef}
+                                onKeyDown={(e) => handleTabKeyDown(e, 'addShot')}
+                            >
+                                {parseFloat(currentShot.endDistance) === 0 ? 'Complete Hole' : 'Add Shot'}
+                            </button>
+                            
+                            {/* Secondary Actions */}
+                            <div className="btn-group" style={{gridTemplateColumns: '1fr 1fr 1fr'}}>
+                                <button 
+                                    className="btn btn-small btn-outline" 
+                                    onClick={removePreviousShot}
+                                    ref={undoShotBtnRef}
+                                    onKeyDown={(e) => handleTabKeyDown(e, 'undoShot')}
+                                >
+                                    Undo Shot
+                                </button>
+                                <button 
+                                    className="btn btn-small btn-outline" 
+                                    onClick={goToPreviousHole}
+                                    ref={prevHoleBtnRef}
+                                    onKeyDown={(e) => handleTabKeyDown(e, 'prevHole')}
+                                >
+                                    Prev Hole
+                                </button>
+                                <button 
+                                    className="btn btn-small btn-outline" 
+                                    onClick={startNewRound}
+                                    ref={newRoundBtnRef}
+                                    onKeyDown={(e) => handleTabKeyDown(e, 'newRound')}
+                                >
+                                    New Round
+                                </button>
+                            </div>
+                            
+                            {/* Collapsible Shot History */}
+                            {currentHoleData.shots.length > 0 && (
+                                <div className="shot-history">
+                                    <div 
+                                        className="shot-history-header" 
+                                        onClick={() => setHistoryExpanded(!historyExpanded)}
+                                    >
+                                        <h3>Hole {currentHole} • {currentHoleData.shots.length + currentHoleData.shots.filter(s => s.penalty).length} strokes</h3>
+                                        <span className="shot-history-toggle">
+                                            {historyExpanded ? '▲ Hide' : '▼ Show'}
+                                        </span>
+                                    </div>
+                                    
+                                    <div className={`shot-history-content ${historyExpanded ? 'expanded' : ''}`}>
+                                        <div className="shot-history-table-wrapper">
+                                            <table className="shot-history-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Shot</th>
+                                                        <th>Start Dist</th>
+                                                        <th>Start Lie</th>
+                                                        <th>End Dist</th>
+                                                        <th>End Lie</th>
+                                                        <th>Pen</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {currentHoleData.shots.map((shot, idx) => (
+                                                        <tr key={idx}>
+                                                            <td className="shot-num">#{shot.shotNumber}</td>
+                                                            <td className="distance">{shot.startDistance}{shot.startLie === 'Green' ? 'ft' : 'y'}</td>
+                                                            <td className="lie">{shot.startLie}</td>
+                                                            <td className="distance">{shot.endDistance}{shot.endLie === 'Green' ? 'ft' : 'y'}</td>
+                                                            <td className="lie">{shot.endLie}</td>
+                                                            <td className="penalty-cell">
+                                                                {shot.penalty && <span className="penalty-indicator">+1</span>}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    <tr className="hole-total-row">
+                                                        <td colSpan="2">Total: {currentHoleData.shots.length + currentHoleData.shots.filter(s => s.penalty).length}</td>
+                                                        <td colSpan="4"></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            // ===== RENDER: COMPLETE =====
+            if (step === 'complete' || step === 'submitted') {
+                const totalShots = holes.reduce((sum, h) => sum + h.shots.length, 0);
+                const totalPenalties = holes.reduce((sum, h) => sum + h.shots.filter(s => s.penalty).length, 0);
+                const totalScore = totalShots + totalPenalties;
+
+                
+                return (
+                    <div className="container">
+                        <div className="card" style={{textAlign: 'center'}}>
+                            <div className="success-icon">✓</div>
+                            <h1 className="success-title">Round Complete</h1>
+                            <p className="success-message">
+                                {roundInfo.playerName} at {roundInfo.course}
+                            </p>
+                            
+                            <div className="summary-card">
+                                <div className="summary-title">Round Summary</div>
+                                <div className="summary-item">
+                                    <span className="summary-label">Total Score</span>
+                                    <span className="summary-value">{totalScore}</span>
+                                </div>
+
+                                <div className="summary-item">
+                                    <span className="summary-label">Date</span>
+                                    <span className="summary-value">{roundInfo.date}</span>
+                                </div>
+                            </div>
+                            
+                            {step === 'complete' && (
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '0.75rem'}}>
+                                    <button className="btn btn-primary" onClick={submitToGoogleSheets} disabled={submitting}>
+                                        {submitting ? 'Submitting...' : 'Submit to Google Sheets'}
+                                    </button>
+                                    <button className="btn btn-secondary" onClick={downloadExcel}>
+                                        Download Excel
+                                    </button>
+                                </div>
+                            )}
+                            
+                            {step === 'submitted' && (
+                                <div className="success-box">
+                                    ✓ Data submitted to Google Sheets
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<GolfTracker />);
+    </script>
+</body>
+</html>
