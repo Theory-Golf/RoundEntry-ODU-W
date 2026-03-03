@@ -1,5 +1,4 @@
-# round-entry-odu-m
-Round Entry File for ODU Men
+Round Entry File for ODU Women
 
 Google Database Sheet 
 1SFYb1_SD3IGqxCHlvjEEJIbOGiDdTSKju9z1FXy8ABU
