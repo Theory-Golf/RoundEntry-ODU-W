@@ -1542,14 +1542,11 @@
                                                 className={`putt-result-btn ${currentShot.puttResult === 'Short' ? 'selected' : ''}`}
                                                 onClick={() => {
                                                     setCurrentShot({...currentShot, puttResult: currentShot.puttResult === 'Short' ? '' : 'Short'});
-                                                    // Auto-submit after selecting
-                                                    setTimeout(() => addShot(), 50);
                                                 }}
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter') {
                                                         e.preventDefault();
                                                         setCurrentShot({...currentShot, puttResult: currentShot.puttResult === 'Short' ? '' : 'Short'});
-                                                        setTimeout(() => addShot(), 50);
                                                     }
                                                 }}
                                             >
@@ -1560,14 +1557,11 @@
                                                 className={`putt-result-btn ${currentShot.puttResult === 'Long' ? 'selected' : ''}`}
                                                 onClick={() => {
                                                     setCurrentShot({...currentShot, puttResult: currentShot.puttResult === 'Long' ? '' : 'Long'});
-                                                    // Auto-submit after selecting
-                                                    setTimeout(() => addShot(), 50);
                                                 }}
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter') {
                                                         e.preventDefault();
                                                         setCurrentShot({...currentShot, puttResult: currentShot.puttResult === 'Long' ? '' : 'Long'});
-                                                        setTimeout(() => addShot(), 50);
                                                     }
                                                 }}
                                             >
