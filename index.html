@@ -1734,8 +1734,17 @@
                             )}
                             
                             {step === 'submitted' && (
-                                <div className="success-box">
-                                    ✓ Data submitted to Google Sheets
+                                <div>
+                                    <div className="success-box">
+                                        ✓ Data submitted to Google Sheets
+                                    </div>
+                                    <button 
+                                        className="btn btn-primary" 
+                                        onClick={startNewRound}
+                                        style={{marginTop: '1rem'}}
+                                    >
+                                        New Round
+                                    </button>
                                 </div>
                             )}
                         </div>
